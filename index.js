@@ -12,7 +12,9 @@ import EnrollmentRoutes from './Kambaz/Enrollments/routes.js';
 
 const app = express()
 
-
+app.get("/", (req, res) => {
+  res.send("Server is running ✅");
+});
 
 
 app.use(
