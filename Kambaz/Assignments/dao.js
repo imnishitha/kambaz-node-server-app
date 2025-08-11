@@ -1,37 +1,30 @@
-import { v4 as uuidv4 } from 'uuid'; 
-import Database from "../Database/index.js";
+import AssignmentModel from "./model.js";
 
-
-
-export const findAssignmentsForCourse = (courseId) => {
-    const { assignments } = Database;
-    return assignments.filter((assignment) => assignment.course === courseId);
+export const findAssignmentsForCourse = async (courseId) => {
+  return AssignmentModel.find({ course: courseId });
 };
 
-
-export const createAssignment = (assignment) => {
-    const newAssignment = { ...assignment, _id: uuidv4() };
-    Database.assignments = [...Database.assignments, newAssignment];
-    return newAssignment;
+export const createAssignment = async (assignment) => {
+  const newAssignment = await AssignmentModel.create(assignment);
+  return newAssignment;
 };
 
-
-export const findAssignmentById = (assignmentId) => {
-    const { assignments } = Database;
-    return assignments.find((assignment) => assignment._id === assignmentId);
+export const findAssignmentById = async (assignmentId) => {
+  return AssignmentModel.findOne({ _id: assignmentId });
 };
 
-export const updateAssignment = (assignmentId, assignmentUpdates) => {
-    const { assignments } = Database;
-    const assignment = assignments.find((assignment) => assignment._id === assignmentId);
-    Object.assign(assignment, assignmentUpdates);
-    return assignment;
+export const updateAssignment = async (assignmentId, assignmentUpdates) => {
+  const updatedAssignment = await AssignmentModel.findByIdAndUpdate(
+    assignmentId,
+    { $set: assignmentUpdates },
+    { new: true } // Returns the updated document
+  );
+  return updatedAssignment;
 };
 
-export const deleteAssignment = (assignmentId) => {
-    const { assignments } = Database;
-    Database.assignments = assignments.filter((assignment) => assignment._id !== assignmentId);
-    return; 
+export const deleteAssignment = async (assignmentId) => {
+  await AssignmentModel.findByIdAndDelete(assignmentId);
+  return; 
 };
 
   
