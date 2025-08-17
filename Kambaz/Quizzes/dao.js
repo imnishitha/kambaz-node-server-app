@@ -1,14 +1,11 @@
 import QuizModel from "./model.js";
-// Assuming you have a QuestionModel
 import QuestionModel from "./model.js";
 
-// --- Quiz DAO ---
 export function findQuizzesForCourse(courseId) {
   return QuizModel.find({ course: courseId });
 }
 
 export function createQuiz(quiz) {
-  // Let MongoDB handle the _id
   return QuizModel.create(quiz);
 }
 
@@ -24,22 +21,16 @@ export function publishQuiz(quizId, published) {
   return QuizModel.updateOne({ _id: quizId }, { published });
 }
 
-// Get quiz questions for taking the quiz (without correct answers for students)
+
 export function findQuizForTaking(quizId) {
-  // You need to define how to handle hiding answers in your DAO
-  // This is a placeholder for a more complex query
   return QuizModel.findById(quizId);
 }
 
-// Get full quiz with answers (for instructors)
+
 export function findQuizWithAnswers(quizId) {
   return QuizModel.findById(quizId);
 }
 
-// --- Question DAO ---
-// export function findQuestionsForQuiz(quizId) {
-//     return QuestionModel.find({ quizId: quizId });
-// }
 export const findQuestionsForQuiz = async (quizId) => {
     const quiz = await QuizModel.findById(quizId, { 'questions': 1 });
     return quiz ? quiz.questions : [];
@@ -50,9 +41,6 @@ export const findQuestionById = async (quizId, questionId) => {
     return quiz.questions.id(questionId);
 };
 
-// export function createQuestion(question) {
-//     return QuestionModel.create(question);
-// }
 export const createQuestion = async (quizId, question) => {
     const newQuestion = await QuizModel.findByIdAndUpdate(
         quizId,
@@ -66,27 +54,19 @@ export const createQuestion = async (quizId, question) => {
     return newQuestion;
 };
 
-// export function updateQuestion(questionId, quizId, questionUpdates) {
-//     // First verify the question belongs to the specified quiz
-//     return QuestionModel.findOneAndUpdate(
-//         { 
-//             _id: questionId, 
-//             quizId: quizId  // Ensure question belongs to this quiz
-//         }, 
-//         { 
-//             ...questionUpdates, 
-//             quizId: quizId  // Ensure quizId doesn't get overwritten
-//         }, 
-//         { new: true }
-//     );
-// }
 
-export const updateQuestion = async (questionId,quizId, questionUpdates) => {
+
+export const updateQuestion = async (questionId, quizId,questionUpdates) => {
+    const quiz = await QuizModel.findById(quizId);
+    const originalQuestion = quiz.questions.id(questionId);
+    const oldPoints = originalQuestion.points;
+    const newPoints = questionUpdates.points;
+    const pointsDifference = newPoints - oldPoints;
     const updatedQuiz = await QuizModel.findOneAndUpdate(
         { _id: quizId, "questions._id": questionId },
         {
-            $set: { "questions.$": questionUpdates },
-            // You may need to handle points updates separately if points change
+            $set: { "questions.$": questionUpdates }, 
+            $inc: { points: pointsDifference }      
         },
         { new: true, runValidators: true }
     );
@@ -94,17 +74,17 @@ export const updateQuestion = async (questionId,quizId, questionUpdates) => {
     return updatedQuiz.questions;
 };
 
-// export function deleteQuestion(questionId, quizId) {
-//     // Only delete if question belongs to the specified quiz
-//     return QuestionModel.findOneAndDelete({
-//         _id: questionId,
-//         quizId: quizId
-//     });
-export const deleteQuestion = async (questionId, quizId) => {
-    const deletedQuiz = await QuizModel.findByIdAndUpdate(
+
+export const deleteQuestion = async (questionId,quizId) => {
+    const quiz = await QuizModel.findById(quizId);
+    const questionToDelete = quiz.questions.id(questionId);
+    const updatedQuiz = await QuizModel.findByIdAndUpdate(
         quizId,
-        { $pull: { questions: { _id: questionId } } },
+        {
+            $pull: { questions: { _id: questionId } }, 
+            $inc: { points: -questionToDelete.points } 
+        },
         { new: true }
     );
-    return deletedQuiz;
+    return updatedQuiz;
 };
